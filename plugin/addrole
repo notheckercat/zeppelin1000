@@ -1,0 +1,46 @@
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent] });
+
+const prefix = '!'; // Command prefix
+
+client.on('messageCreate', async (message) => {
+    // Ignore messages from the bot
+    if (message.author.bot) return;
+
+    // Add role command
+    if (message.content.startsWith(`${prefix}addrole`)) {
+        // Check if the user has permission to manage roles
+        if (!message.member.permissions.has('MANAGE_ROLES')) {
+            return message.reply('You do not have permission to add roles!');
+        }
+
+        // Get the mentioned user and the role name
+        const member = message.mentions.members.first();
+        const roleName = message.content.split(' ').slice(2).join(' ');
+
+        if (!member) {
+            return message.reply('Please mention a member!');
+        }
+
+        if (!roleName) {
+            return message.reply('Please provide a role name!');
+        }
+
+        // Find the role on the server
+        const role = message.guild.roles.cache.find(r => r.name === roleName);
+        if (!role) {
+            return message.reply('I could not find that role on the server!');
+        }
+
+        try {
+            // Add the role to the mentioned member
+            await member.roles.add(role);
+            message.reply(`${member.user.tag} has been given the ${roleName} role.`);
+        } catch (error) {
+            message.reply('I could not add the role to the member!');
+            console.error(error);
+        }
+    }
+});
+
+client.login('YOUR_BOT_TOKEN'); // Replace with your bot's token
