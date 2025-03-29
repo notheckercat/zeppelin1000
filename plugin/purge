@@ -1,0 +1,36 @@
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+const prefix = '!'; // Command prefix
+
+client.on('messageCreate', async (message) => {
+    // Ignore messages from the bot
+    if (message.author.bot) return;
+
+    // Purge command
+    if (message.content.startsWith(`${prefix}purge`)) {
+        // Check if the user has permission to manage messages
+        if (!message.member.permissions.has('MANAGE_MESSAGES')) {
+            return message.reply('You do not have permission to purge messages!');
+        }
+
+        // Get the number of messages to delete
+        const args = message.content.split(' ').slice(1);
+        const amount = parseInt(args[0]);
+
+        if (!amount || amount <= 0 || amount > 100) {
+            return message.reply('Please provide a number between 1 and 100 of messages to delete!');
+        }
+
+        try {
+            // Delete messages
+            await message.channel.bulkDelete(amount, true);
+            message.reply(`${amount} messages have been deleted.`);
+        } catch (error) {
+            message.reply('I could not purge the messages.');
+            console.error(error);
+        }
+    }
+});
+
+client.login('YOUR_BOT_TOKEN'); // Replace with your bot's token
