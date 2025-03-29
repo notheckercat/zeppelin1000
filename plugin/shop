@@ -1,0 +1,78 @@
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+
+const prefix = '!'; // Command prefix
+
+// Sample inventory (you can add more items and prices)
+const shopItems = [
+    { name: 'VIP Role', price: 100, id: 'vip_role' },
+    { name: 'Special Mute', price: 50, id: 'special_mute' },
+    { name: 'Custom Emoji', price: 200, id: 'custom_emoji' }
+];
+
+// Sample user balances (this would typically be stored in a database)
+let userBalances = {};
+
+// Command to check balance
+client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+
+    // Check balance command
+    if (message.content.startsWith(`${prefix}balance`)) {
+        const userId = message.author.id;
+        const balance = userBalances[userId] || 0; // Default to 0 if no balance is found
+        message.reply(`Your balance is: ${balance} coins`);
+    }
+
+    // Shop command
+    if (message.content.startsWith(`${prefix}shop`)) {
+        let shopList = 'Available items for purchase:\n';
+        shopItems.forEach((item, index) => {
+            shopList += `${index + 1}. ${item.name} - ${item.price} coins\n`;
+        });
+        message.reply(shopList);
+    }
+
+    // Buy command
+    if (message.content.startsWith(`${prefix}buy`)) {
+        const args = message.content.split(' ');
+        const itemIndex = parseInt(args[1]) - 1; // Item index
+        if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= shopItems.length) {
+            return message.reply('Please select a valid item from the shop!');
+        }
+
+        const selectedItem = shopItems[itemIndex];
+        const userId = message.author.id;
+        const userBalance = userBalances[userId] || 0;
+
+        if (userBalance >= selectedItem.price) {
+            // Deduct the price and give the item
+            userBalances[userId] = userBalance - selectedItem.price;
+
+            // Here, you can assign a role or provide any other item to the user
+            if (selectedItem.id === 'vip_role') {
+                const role = message.guild.roles.cache.find(r => r.name === 'VIP');
+                if (role) {
+                    message.member.roles.add(role);
+                    message.reply(`You have successfully bought the ${selectedItem.name}!`);
+                } else {
+                    message.reply('Role not found!');
+                }
+            }
+
+            // Add more conditions for different items if needed
+
+        } else {
+            message.reply('You do not have enough coins for this purchase!');
+        }
+    }
+});
+
+// Initialize user balance when they join the server (example)
+client.on('guildMemberAdd', member => {
+    if (!userBalances[member.id]) {
+        userBalances[member.id] = 500; // Start everyone with 500 coins
+    }
+});
+
+client.login('YOUR_BOT_TOKEN'); // Replace with your bot token
