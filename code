@@ -1,0 +1,59 @@
+const { Client, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent] });
+
+const prefix = '!'; // You can change the command prefix
+
+client.on('messageCreate', async (message) => {
+    // Ignore messages sent by the bot
+    if (message.author.bot) return;
+
+    // **kick** command
+    if (message.content.startsWith(`${prefix}kick`)) {
+        if (!message.member.permissions.has('KICK_MEMBERS')) return message.reply('You do not have permission to kick members!');
+        const member = message.mentions.members.first();
+        if (!member) return message.reply('Please mention a member!');
+        await member.kick('Reason for kick').catch(err => message.reply('I couldn\'t kick the member!'));
+        message.reply(`${member.user.tag} has been kicked.`);
+    }
+
+    // **ban** command
+    if (message.content.startsWith(`${prefix}ban`)) {
+        if (!message.member.permissions.has('BAN_MEMBERS')) return message.reply('You do not have permission to ban members!');
+        const member = message.mentions.members.first();
+        if (!member) return message.reply('Please mention a member!');
+        await member.ban({ reason: 'Reason for ban' }).catch(err => message.reply('I couldn\'t ban the member!'));
+        message.reply(`${member.user.tag} has been banned.`);
+    }
+
+    // **unban** command
+    if (message.content.startsWith(`${prefix}unban`)) {
+        if (!message.member.permissions.has('BAN_MEMBERS')) return message.reply('You do not have permission to unban members!');
+        const userId = message.content.split(' ')[1];
+        if (!userId) return message.reply('Please provide a user ID!');
+        const user = await message.guild.bans.fetch(userId).catch(err => message.reply('I couldn\'t find that ban!'));
+        if (!user) return message.reply('This user is not banned!');
+        await message.guild.bans.remove(userId).catch(err => message.reply('I couldn\'t unban the user!'));
+        message.reply(`The ban for ${user.tag} has been lifted.`);
+    }
+
+    // **mute** command
+    if (message.content.startsWith(`${prefix}mute`)) {
+        if (!message.member.permissions.has('MUTE_MEMBERS')) return message.reply('You do not have permission to mute members!');
+        const member = message.mentions.members.first();
+        const time = message.content.split(' ')[2]; // Mute time (e.g. 10m, 1h)
+        if (!member || !time) return message.reply('Please mention a member and provide a time!');
+        const ms = require('ms');
+        const muteRole = message.guild.roles.cache.find(role => role.name === 'Muted');
+        if (!muteRole) return message.reply('There is no "Muted" role on this server!');
+        await member.roles.add(muteRole);
+        message.reply(`${member.user.tag} has been muted for ${time}.`);
+
+        // Set a timeout to unmute the user automatically
+        setTimeout(() => {
+            member.roles.remove(muteRole);
+            message.reply(`${member.user.tag} has been unmuted.`);
+        }, ms(time));
+    }
+});
+
+client.login('YOUR_BOT_TOKEN'); // Replace with your bot's token
